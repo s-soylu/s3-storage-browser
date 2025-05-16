@@ -1,36 +1,38 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-import "./../app/app.css";
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
 import "@aws-amplify/ui-react/styles.css";
 import { Authenticator } from '@aws-amplify/ui-react';
 import { StorageBrowser } from '../components/StorageBrowser';
 
+import "@/app/app.css";
+
+// Amplify konfigürasyonu sadece bir kez yapılmalı
 Amplify.configure(outputs);
 
+// Amplify veri istemcisi
 const client = generateClient<Schema>();
 
-export default function App() {
+export default function Page() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
 
-  function listTodos() {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
-  }
-
   useEffect(() => {
-    listTodos();
+    const subscription = client.models.Todo.observeQuery().subscribe({
+      next: ({ items }) => setTodos([...items]),
+    });
+
+    return () => subscription.unsubscribe(); // Bellek sızıntısını önle
   }, []);
 
   function createTodo() {
-    client.models.Todo.create({
-      content: window.prompt("Todo content"),
-    });
+    const content = window.prompt("Todo content");
+    if (content) {
+      client.models.Todo.create({ content });
+    }
   }
 
   return (
@@ -48,5 +50,4 @@ export default function App() {
       )}
     </Authenticator>
   );
-
 }
